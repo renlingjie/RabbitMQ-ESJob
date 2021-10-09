@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rlj.producer.mapper.BrokerMessageMapper" >
+    <resultMap id="BaseResultMap" type="com.rlj.producer.entity.BrokerMessage" >
+        <id column="message_id" property="messageId" jdbcType="VARCHAR" />
+        <result column="message" property="message" jdbcType="VARCHAR" typeHandler="com.rlj.common.mybatis.MessageJsonTypeHandler"/>
+        <result column="try_count" property="tryCount" jdbcType="INTEGER" />
+        <result column="status" property="status" jdbcType="VARCHAR" />
+        <result column="next_retry" property="nextRetry" jdbcType="TIMESTAMP" />
+        <result column="created_time" property="createdTime" jdbcType="TIMESTAMP" />
+        <result column="updated_time" property="updatedTime" jdbcType="TIMESTAMP" />
+    </resultMap>
+    <sql id="Base_Column_List">
+        message_id,message,try_count,status,next_retry,create_time,update_time
+    </sql>
+
+    <insert id="insert" parameterType="com.rlj.producer.entity.BrokerMessage">
+        insert into broker_message (<include refid="Base_Column_List"/>)
+        values (#{messageId,jdbcType=VARCHAR}, #{message,jdbcType=VARCHAR,typeHandler=com.rlj.common.mybatis.MessageJsonTypeHandler},
+        #{tryCount,jdbcType=INTEGER},#{status,jdbcType=VARCHAR},#{nextRetry,jdbcType=TIMESTAMP},
+        #{createTime,jdbcType=TIMESTAMP},#{updateTime,jdbcType=TIMESTAMP}
+        )
+    </insert>
+
+    <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.String">
+        select
+        <include refid="Base_Column_List" />
+        from broker_message bm
+        where bm.message_id = #{messageId,jdbcType=VARCHAR}
+    </select>
+
+    <select id="queryBrokerMessageStatus" resultMap="BaseResultMap" parameterType="java.lang.String">
+        select
+        <include refid="Base_Column_List" />
+        from broker_message bm
+        where bm.status = #{brokerMessageStatus,jdbcType=VARCHAR}
+    </select>
+
+    <select id="queryBrokerMessageStatusForTimeout" resultMap="BaseResultMap">
+      <![CDATA[
+        select message_id,message,try_count,status,next_retry,create_time,update_time
+        from broker_message bm
+        where bm.status = #{brokerMessageStatus,jdbcType=VARCHAR}
+        and bm.next_retry < sysdate()
+      ]]>
+    </select>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+        delete from broker_message bm
+        where bm.message_id = #{messageId,jdbcType=VARCHAR}
+    </delete>
+
+
+    <update id="changeBrokerMessageStatus">
+        update broker_message bm
+        set bm.status = #{brokerMessageStatus,jdbcType=VARCHAR},
+            bm.update_time = #{updateTime,jdbcType=TIMESTAMP}
+        where bm.message_id = #{brokerMessageId,jdbcType=VARCHAR}
+    </update>
+
+    <update id="updateForTryCount">
+        update broker_message bm
+        set bm.try_count = bm.try_count + 1,
+            bm.update_time = #{updateTime,jdbcType=TIMESTAMP},
+            bm.next_retry = #{nextRetry,jdbcType=TIMESTAMP}
+        where bm.message_id = #{brokerMessageId,jdbcType=VARCHAR}
+    </update>
+</mapper>
